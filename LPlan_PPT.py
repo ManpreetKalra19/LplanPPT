@@ -7,6 +7,10 @@ from pptx.util import Inches, Pt
 import tempfile
 import re
 
+# Specifically for OpenAI client to work on Streamlit Cloud
+import openai
+openai.api_key = None  # Will be set later with user input
+
 st.set_page_config(page_title="AI Lesson Plan Generator", page_icon="📚")
 
 st.title("AI Lesson Plan Generator")
@@ -66,7 +70,10 @@ with tab1:
     def generate_lesson_plan_openai(grade, subject, concept, board, api_key, model):
         """Generates a lesson plan using OpenAI's models with the v1.0+ API."""
         try:
-            client = OpenAI(api_key=api_key)
+            # Set API key for both approaches
+            openai.api_key = api_key
+            
+            # Use the simpler approach that works on Streamlit Cloud
             prompt = f"""Create a detailed lesson plan for {subject} on {concept} for Grade {grade} following the {board} curriculum.
             
             Structure your response with clear headings for each section:
@@ -82,13 +89,16 @@ with tab1:
             Use proper Markdown formatting with headings (##) for each section.
             """
             
-            response = client.chat.completions.create(
+            messages = [
+                {"role": "system", "content": f"You are an expert educator specializing in the {board} curriculum."},
+                {"role": "user", "content": prompt}
+            ]
+            
+            response = openai.chat.completions.create(
                 model=model,
-                messages=[
-                    {"role": "system", "content": f"You are an expert educator specializing in the {board} curriculum."},
-                    {"role": "user", "content": prompt}
-                ]
+                messages=messages
             )
+            
             return response.choices[0].message.content
         
         except Exception as e:
@@ -300,9 +310,4 @@ with tab2:
     1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey) or [Google AI for Developers](https://ai.google.dev/)
     2. Create or sign in to your Google account
     3. Generate an API key for Gemini API
-    
-    #### Required Python Libraries:
-    ```
-    pip install streamlit openai google-generativeai python-pptx
-    ```
     """)
